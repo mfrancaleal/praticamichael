@@ -1,0 +1,67 @@
+version: '3.3'
+services:
+
+  #Laravel App
+  app:
+    build:
+      context: ./
+      dockerfile: docker/php/Dockerfile
+    image: hakase-labs/laravel
+    container_name: michael_app
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "9001:9000"
+    environment:
+      SERVICE_NAME: app
+      SERVICE_TAGS: dev
+    working_dir: /var/www/html
+    volumes:
+      - ./:/var/www/html
+    networks:
+      - michael_net
+
+  #Nginx Service
+  nginx:
+    image: nginx:alpine
+    container_name: michael_nginx
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "8080:80"
+      - "443:443"
+    volumes:
+      - ./:/var/www/html
+      - ./docker/nginx/conf.d/:/etc/nginx/conf.d/
+      - ./docker/nginx/ssl/:/etc/nginx/ssl/
+    networks:
+      - michael_net
+
+  #MySQL Service
+  db:
+    image: mysql:5.7
+    container_name: michael_db
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYQSL_ROOT_PASSWORD}
+    command: mysqld --sql_mode="STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION"
+    volumes:
+      - mysqldata:/var/lib/mysql/
+      - ./docker/mysql/my.cnf:/etc/mysql/my.cnf
+    networks:
+      - michael_net
+
+#Docker Networks
+networks:
+  michael_net:
+    driver: bridge
+#Volumes
+volumes:
+  mysqldata:
+    driver: local
